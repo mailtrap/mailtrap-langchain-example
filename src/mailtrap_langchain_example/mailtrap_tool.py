@@ -2,8 +2,8 @@ import mailtrap as mt
 import requests
 from langchain_core.tools import tool
 
-from .config import get_settings
-from .guardrail import RecipientNotAllowedError, assert_recipient_allowed
+from mailtrap_langchain_example.config import get_settings
+from mailtrap_langchain_example.guardrail import RecipientNotAllowedError, assert_recipient_allowed
 
 
 @tool

@@ -1,9 +1,8 @@
-import sys
-
 from langchain.agents import create_agent
+from langchain.chat_models import init_chat_model
 
-from .config import get_settings
-from .mailtrap_tool import send_email
+from mailtrap_langchain_example.config import get_settings
+from mailtrap_langchain_example.mailtrap_tool import send_email
 
 SYSTEM_PROMPT = (
     "You are an assistant that sends transactional emails on request. "
@@ -21,43 +20,15 @@ SYSTEM_PROMPT = (
     "return a SENT result."
 )
 
-DEMO_PROMPT = "Send a welcome email to jane@example.com"
-
 
 def build_agent():
     settings = get_settings()
+    model = init_chat_model(
+        f"{settings.llm_provider}:{settings.llm_model}",
+        api_key=settings.llm_api_key,
+    )
     return create_agent(
-        model=f"{settings.llm_provider}:{settings.llm_model}",
+        model=model,
         tools=[send_email],
         system_prompt=SYSTEM_PROMPT,
     )
-
-
-def _last_send_email_result(messages) -> str | None:
-    """The LLM's final reply is a paraphrase, not a source of truth — it can
-    claim success even when send_email actually returned REJECTED/FAILED (or
-    invent details for a call that never happened). Prefer the tool's own
-    literal return value when one exists.
-    """
-    for message in reversed(messages):
-        if getattr(message, "type", None) == "tool" and getattr(message, "name", None) == "send_email":
-            return message.content
-    return None
-
-
-def main() -> None:
-    prompt = " ".join(sys.argv[1:]) or DEMO_PROMPT
-    agent = build_agent()
-    result = agent.invoke({"messages": [{"role": "user", "content": prompt}]})
-
-    tool_result = _last_send_email_result(result["messages"])
-    if tool_result is not None:
-        print(tool_result)
-    else:
-        # No send_email call happened (e.g. the model asked for a valid
-        # recipient instead) — the LLM's own reply is all there is to show.
-        print(result["messages"][-1].content)
-
-
-if __name__ == "__main__":
-    main()

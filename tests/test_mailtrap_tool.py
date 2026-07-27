@@ -1,11 +1,14 @@
-import os
+import pytest
 
-os.environ.setdefault("MAILTRAP_API_TOKEN", "test-token")
-os.environ.setdefault("MAILTRAP_SENDER_EMAIL", "sender@yourdomain.com")
-os.environ.setdefault("ALLOWED_RECIPIENT_DOMAIN", "example.com")
-os.environ.setdefault("OWN_EMAIL", "test@test.io")
+from mailtrap_langchain_example import mailtrap_tool
 
-from mailtrap_langchain_example import mailtrap_tool  # noqa: E402
+
+@pytest.fixture(autouse=True)
+def mailtrap_env(monkeypatch):
+    monkeypatch.setenv("MAILTRAP_API_TOKEN", "test-token")
+    monkeypatch.setenv("MAILTRAP_SENDER_EMAIL", "sender@yourdomain.com")
+    monkeypatch.setenv("ALLOWED_RECIPIENT_DOMAIN", "example.com")
+    monkeypatch.setenv("OWN_EMAIL", "test@test.io")
 
 
 class FakeMailtrapClient:
