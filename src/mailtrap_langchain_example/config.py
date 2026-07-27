@@ -6,16 +6,16 @@ class Settings(BaseSettings):
         env_file=".env", env_file_encoding="utf-8", extra="ignore", frozen=True
     )
 
-    mailtrap_api_token: str = ""
-    mailtrap_sender_email: str = ""
+    mailtrap_api_token: str
+    mailtrap_sender_email: str
     mailtrap_sender_name: str = "Demo Bot"
-    mailtrap_inbox_id: str = "123567"
+    mailtrap_inbox_id: str
     mailtrap_sandbox: bool = True
     allowed_recipient_domain: str = "example.com"
     own_email: str = ""
     llm_provider: str = "openai"
     llm_model: str = "gpt-4o-mini"
-    llm_api_key: str = ""
+    llm_api_key: str | None = None
 
 
 def get_settings() -> Settings:

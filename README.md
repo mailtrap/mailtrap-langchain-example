@@ -42,15 +42,17 @@ copy .env.example .env         # Windows: copy, macOS/Linux: cp
 `uv sync` creates `.venv`, installs all dependencies from `pyproject.toml`/`uv.lock`, and installs
 this package itself in editable mode (so its console script and absolute imports work).
 
-Fill in `.env`:
+Fill in `.env`. `MAILTRAP_API_TOKEN`, `MAILTRAP_SENDER_EMAIL`, and `MAILTRAP_INBOX_ID` are
+**required** — `Settings` (`config.py`) has no fallback for them, so a missing value fails fast
+with a clear `pydantic.ValidationError` at startup instead of silently sending from `""`:
 - `MAILTRAP_API_TOKEN` — from your Mailtrap account
 - `MAILTRAP_SENDER_EMAIL` / `MAILTRAP_SENDER_NAME` — the "from" address/name on sent emails
-- `MAILTRAP_SANDBOX` — `true` (default) sends into a Mailtrap Sandbox inbox (safe for testing,
-  requires `MAILTRAP_INBOX_ID`); `false` sends real mail via the production Sending API (requires
-  `MAILTRAP_SENDER_EMAIL` to be on a domain verified in your Mailtrap account's Sending Domains
-  settings; `MAILTRAP_INBOX_ID` is ignored)
-- `MAILTRAP_INBOX_ID` — required when `MAILTRAP_SANDBOX=true`. Find it in the Mailtrap dashboard
-  under **Email Testing → Inboxes → (your inbox) → Integration**, or from the inbox's URL
+- `MAILTRAP_SANDBOX` — `true` (default) sends into a Mailtrap Sandbox inbox (safe for testing);
+  `false` sends real mail via the production Sending API (requires `MAILTRAP_SENDER_EMAIL` to be
+  on a domain verified in your Mailtrap account's Sending Domains settings; `MAILTRAP_INBOX_ID` is
+  ignored in this mode, but must still be set to *some* value since it's a required field)
+- `MAILTRAP_INBOX_ID` — required. Find it in the Mailtrap dashboard under **Email Testing →
+  Inboxes → (your inbox) → Integration**, or from the inbox's URL
   (`mailtrap.io/inboxes/<inbox_id>/messages`)
 - `ALLOWED_RECIPIENT_DOMAIN` — the guardrail's allowed domain (default `example.com`)
 - `OWN_EMAIL` — your own address, exempted from the domain guardrail
@@ -58,7 +60,7 @@ Fill in `.env`:
   `openai` (default, e.g. `gpt-4o-mini`) or `anthropic` (e.g. `claude-3-5-haiku-latest`)
 - `LLM_API_KEY` — the API key for whichever `LLM_PROVIDER` you picked. Passed explicitly to
   `init_chat_model(..., api_key=settings.llm_api_key)` in `agent.py`, so it flows from `.env` →
-  `Settings` → the model constructor directly — no reliance on `os.environ` or `load_dotenv()`
+  `Settings` → the model constructor directly
 
 ## Run
 
