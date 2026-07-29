@@ -21,6 +21,7 @@ def send_email(to: str, subject: str, body: str) -> str:
         recipient was rejected by the guardrail.
     """
     settings = get_settings()
+    to = to.strip()
 
     try:
         assert_recipient_allowed(
