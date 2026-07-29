@@ -16,6 +16,11 @@ single tool; `main.py` is the CLI entry point that takes a prompt like:
 
 The LLM decides to call `send_email`, which sends the email through Mailtrap.
 
+`create_agent` is LangChain 1.x's replacement for the 0.x `AgentExecutor`, which no longer exists
+in `langchain.agents` (it now lives in the deprecated `langchain-classic`). It compiles to a
+LangGraph `CompiledStateGraph` running the same tool-calling loop — so this is the standard
+`@tool` + LangGraph agent pattern.
+
 ## Guardrail
 
 To make this safe to run as a demo, `send_email` only allows sending to:
@@ -36,31 +41,37 @@ Requires [uv](https://docs.astral.sh/uv/).
 
 ```bash
 uv sync --extra dev
-copy .env.example .env         # Windows: copy, macOS/Linux: cp
+cp .env.example .env           # Windows: copy .env.example .env
 ```
 
-`uv sync` creates `.venv`, installs all dependencies from `pyproject.toml`/`uv.lock`, and installs
-this package itself in editable mode (so its console script and absolute imports work).
+Fill in `.env`. `MAILTRAP_API_TOKEN`, `MAILTRAP_SENDER_EMAIL`, `MAILTRAP_INBOX_ID`, and
+`LLM_API_KEY` are **required and must be non-empty** — a value that is missing *or* left blank
+stops the run at startup (`config.py`) and names the offending settings, before any LLM or Mailtrap
+call is made.
 
-Fill in `.env`. `MAILTRAP_API_TOKEN`, `MAILTRAP_SENDER_EMAIL`, and `MAILTRAP_INBOX_ID` are
-**required** — `Settings` (`config.py`) has no fallback for them, so a missing value fails fast
-with a clear `pydantic.ValidationError` at startup instead of silently sending from `""`:
 - `MAILTRAP_API_TOKEN` — from your Mailtrap account
 - `MAILTRAP_SENDER_EMAIL` / `MAILTRAP_SENDER_NAME` — the "from" address/name on sent emails
 - `MAILTRAP_SANDBOX` — `true` (default) sends into a Mailtrap Sandbox inbox (safe for testing);
   `false` sends real mail via the production Sending API (requires `MAILTRAP_SENDER_EMAIL` to be
   on a domain verified in your Mailtrap account's Sending Domains settings; `MAILTRAP_INBOX_ID` is
-  ignored in this mode, but must still be set to *some* value since it's a required field)
+  ignored in this mode, but must still be set to *some* value since it's a required field). The
+  `false` path has not been exercised against a live verified domain — only the config logic that
+  passes `sandbox=` through to the client
 - `MAILTRAP_INBOX_ID` — required. Find it in the Mailtrap dashboard under **Email Testing →
   Inboxes → (your inbox) → Integration**, or from the inbox's URL
   (`mailtrap.io/inboxes/<inbox_id>/messages`)
 - `ALLOWED_RECIPIENT_DOMAIN` — the guardrail's allowed domain (default `example.com`)
 - `OWN_EMAIL` — your own address, exempted from the domain guardrail
-- `LLM_PROVIDER` / `LLM_MODEL` — passed to `init_chat_model` as `"<provider>:<model>"`. Supported:
-  `openai` (default, e.g. `gpt-4o-mini`) or `anthropic` (e.g. `claude-3-5-haiku-latest`)
-- `LLM_API_KEY` — the API key for whichever `LLM_PROVIDER` you picked. Passed explicitly to
-  `init_chat_model(..., api_key=settings.llm_api_key)` in `agent.py`, so it flows from `.env` →
-  `Settings` → the model constructor directly
+- `LLM_PROVIDER` / `LLM_MODEL` — passed to `init_chat_model` as `"<provider>:<model>"`. Installed
+  and ready to use: `google_genai` (default, `gemini-flash-lite-latest` — free tier, no billing
+  account needed), `openai` (e.g. `gpt-4o-mini`), or `anthropic` (e.g. `claude-3-5-haiku-latest`).
+  Any other provider LangChain supports works too, once its `langchain-<provider>` package is
+  installed — nothing in the code is provider-specific. The default deliberately uses a moving
+  `-latest` alias (Google retires pinned models for new accounts) and the `-lite` tier (the
+  free-tier daily cap is per model, and `-lite` has the most usable one)
+- `LLM_API_KEY` — required. The key for whichever `LLM_PROVIDER` you picked. Passed explicitly to
+  `init_chat_model`, so the provider's own `GOOGLE_API_KEY` / `OPENAI_API_KEY` / `ANTHROPIC_API_KEY`
+  environment variable is **not** consulted
 
 ## Run
 
@@ -77,15 +88,11 @@ uv run pytest
 ```
 
 `test_guardrail.py` is pure unit tests (no network). `test_mailtrap_tool.py` mocks the Mailtrap
-client so no real email is sent during testing.
+client so no real email is sent during testing, and sets every required setting itself, so the
+suite passes without a `.env` file and without real credentials.
 
-## Known limitation
-
-Real (non-sandbox) sending via `MAILTRAP_SANDBOX=false` has not been tested end-to-end against a
-live Mailtrap account with a verified sending domain — only the guardrail/config logic that picks
-`sandbox=settings.mailtrap_sandbox` has been verified. Sandbox mode (the default) **has** been
-verified end-to-end against a live Mailtrap sandbox account (agent → tool →
-`MailtrapClient.send()` → message received in the dashboard).
+Beyond the suite, the default sandbox path has been run end-to-end against a live Mailtrap account:
+agent → tool → `MailtrapClient.send()` → message received in the dashboard.
 
 ## Reference material
 

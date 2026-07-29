@@ -5,8 +5,11 @@ from mailtrap_langchain_example import mailtrap_tool
 
 @pytest.fixture(autouse=True)
 def mailtrap_env(monkeypatch):
+    """Set every required setting, so the tests pass with no .env on disk."""
     monkeypatch.setenv("MAILTRAP_API_TOKEN", "test-token")
     monkeypatch.setenv("MAILTRAP_SENDER_EMAIL", "sender@yourdomain.com")
+    monkeypatch.setenv("MAILTRAP_INBOX_ID", "1234567")
+    monkeypatch.setenv("LLM_API_KEY", "test-key")
     monkeypatch.setenv("ALLOWED_RECIPIENT_DOMAIN", "example.com")
     monkeypatch.setenv("OWN_EMAIL", "test@test.io")
 

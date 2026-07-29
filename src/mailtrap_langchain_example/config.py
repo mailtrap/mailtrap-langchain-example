@@ -1,22 +1,22 @@
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore", frozen=True
     )
 
-    mailtrap_api_token: str
-    mailtrap_sender_email: str
+    mailtrap_api_token: str = Field(min_length=1)
+    mailtrap_sender_email: str = Field(min_length=1)
     mailtrap_sender_name: str = "Demo Bot"
-    mailtrap_inbox_id: str
+    mailtrap_inbox_id: str = Field(min_length=1)
     mailtrap_sandbox: bool = True
     allowed_recipient_domain: str = "example.com"
     own_email: str = ""
-    llm_provider: str = "openai"
-    llm_model: str = "gpt-4o-mini"
-    llm_api_key: str | None = None
+    llm_provider: str = "google_genai"
+    llm_model: str = "gemini-flash-lite-latest"
+    llm_api_key: str = Field(min_length=1)
 
 
 def get_settings() -> Settings:
-    return Settings()
+    return Settings()  # type: ignore[call-arg]
