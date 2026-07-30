@@ -12,7 +12,7 @@ send an email from a natural-language prompt.
 the Mailtrap Email API. `agent.py` builds an agent with LangChain's `create_agent`, given this
 single tool; `main.py` is the CLI entry point that takes a prompt like:
 
-> "Send a welcome email to you@yourdomain.com"
+> "Send a welcome email to you@yourcompany.com"
 
 The LLM decides to call `send_email`, which sends the email through Mailtrap.
 
@@ -105,7 +105,7 @@ and names the offending settings, before any LLM or Mailtrap call is made.
 Pass your own address as the recipient — it's real mail, and it needs somewhere real to land:
 
 ```bash
-uv run mailtrap-langchain-example "Send a welcome email to you@yourdomain.com"
+uv run mailtrap-langchain-example "Send a welcome email to you@yourcompany.com"
 ```
 
 Use the address you put in `OWN_EMAIL` (or any address on `ALLOWED_RECIPIENT_DOMAIN`, if you pointed
@@ -120,9 +120,11 @@ rather than guessing a recipient.
 uv run pytest
 ```
 
-`test_guardrail.py` is pure unit tests (no network). `test_mailtrap_tool.py` mocks the Mailtrap
-client so no real email is sent during testing, and sets every required setting itself, so the
-suite passes without a `.env` file and without real credentials.
+`test_guardrail.py` and `test_main.py` are pure unit tests (no network, no settings) — the latter
+covers which recipient a run picks and how the CLI reads `send_email`'s literal status back out of
+the agent's messages. `test_mailtrap_tool.py` mocks the Mailtrap client so no real email is sent
+during testing, and sets every required setting itself, so the suite passes without a `.env` file
+and without real credentials.
 
 Beyond the suite, the agent → tool → `MailtrapClient.send()` flow has been run end-to-end against a
 live Mailtrap account. Sending goes through the production Sending API, which delivers real mail

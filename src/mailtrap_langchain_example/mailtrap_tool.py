@@ -13,8 +13,9 @@ def send_email(to: str, subject: str, body: str) -> str:
     """Send a transactional email via Mailtrap.
 
     Args:
-        to: recipient email address. For this demo it MUST be on the
-            example.com domain or the operator's own verified address.
+        to: recipient email address. This demo only sends to the operator's
+            own address (OWN_EMAIL) or to addresses on the configured allowed
+            domain — any other recipient is rejected before Mailtrap is called.
         subject: email subject line.
         body: plain-text email body.
 

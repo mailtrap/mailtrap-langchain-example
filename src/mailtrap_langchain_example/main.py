@@ -25,15 +25,16 @@ def main() -> None:
 
 
 def _resolve_prompt(cli_words: list[str], own_email: str) -> str:
-    prompt = " ".join(cli_words)
+    prompt = " ".join(cli_words).strip()
     if prompt:
         return prompt
 
+    own_email = own_email.strip()
     if not own_email:
         raise ValueError(
             "No recipient for a run with no argument: OWN_EMAIL is not set.\n"
             "Either set it, or name a recipient in the prompt:\n"
-            '  uv run mailtrap-langchain-example "Send a welcome email to you@yourdomain.com"'
+            '  uv run mailtrap-langchain-example "Send a welcome email to you@yourcompany.com"'
         )
 
     return f"Send a welcome email to {own_email}"

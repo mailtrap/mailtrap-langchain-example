@@ -1,6 +1,7 @@
 import pytest
 
 from mailtrap_langchain_example import mailtrap_tool
+from mailtrap_langchain_example.config import get_settings
 
 
 @pytest.fixture(autouse=True)
@@ -11,6 +12,11 @@ def mailtrap_env(monkeypatch):
     monkeypatch.setenv("LLM_API_KEY", "test-key")
     monkeypatch.setenv("ALLOWED_RECIPIENT_DOMAIN", "example.com")
     monkeypatch.setenv("OWN_EMAIL", "test@test.io")
+    # get_settings is cached, so drop anything a previous test cached — and
+    # don't leave these test values behind for the next one.
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 class FakeMailtrapClient:
