@@ -3,13 +3,13 @@ import sys
 from langchain_core.messages import ToolMessage
 
 from mailtrap_langchain_example.agent import build_agent
-
-DEMO_PROMPT = "Send a welcome email to jane@example.com"
+from mailtrap_langchain_example.config import get_settings
 
 
 def main() -> None:
-    prompt = " ".join(sys.argv[1:]) or DEMO_PROMPT
     try:
+        settings = get_settings()
+        prompt = _resolve_prompt(sys.argv[1:], settings.own_email)
         agent = build_agent()
     except ValueError as error:
         sys.exit(f"{error}\n\nCheck .env — see the Setup section of README.md.")
@@ -22,6 +22,21 @@ def main() -> None:
     else:
         reply = result["messages"][-1].text
         print(reply or "The model returned no text and did not call send_email.")
+
+
+def _resolve_prompt(cli_words: list[str], own_email: str) -> str:
+    prompt = " ".join(cli_words)
+    if prompt:
+        return prompt
+
+    if not own_email:
+        raise ValueError(
+            "No recipient for a run with no argument: OWN_EMAIL is not set.\n"
+            "Either set it, or name a recipient in the prompt:\n"
+            '  uv run mailtrap-langchain-example "Send a welcome email to you@yourdomain.com"'
+        )
+
+    return f"Send a welcome email to {own_email}"
 
 
 def _last_send_email_result(messages) -> str | None:

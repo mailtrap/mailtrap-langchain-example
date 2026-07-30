@@ -12,9 +12,13 @@ send an email from a natural-language prompt.
 the Mailtrap Email API. `agent.py` builds an agent with LangChain's `create_agent`, given this
 single tool; `main.py` is the CLI entry point that takes a prompt like:
 
-> "Send a welcome email to jane@example.com"
+> "Send a welcome email to you@yourdomain.com"
 
 The LLM decides to call `send_email`, which sends the email through Mailtrap.
+
+Sending goes through the production **Sending API**, so a successful run delivers **real email**.
+Use your own address as the recipient while experimenting — see [Picking a
+recipient](#picking-a-recipient) below.
 
 Every message goes out tagged with the category `langchain-example`, so sends from this example are
 grouped together in your Mailtrap category stats. The tag is set twice on purpose: as the Sending
@@ -36,9 +40,31 @@ Any other recipient is rejected by `guardrail.py` **before** the Mailtrap SDK is
 agent can never accidentally email a real third party while you're experimenting with prompts.
 See `tests/test_guardrail.py` for the guardrail's behavior.
 
-`send_email` returns one of three statuses: `SENT to ...` (delivered), `REJECTED: ...` (blocked by
-the guardrail, Mailtrap never contacted), or `FAILED to send to ...` (the guardrail passed but the
-Mailtrap API call itself errored — bad token, unverified sending domain, network issue, etc.).
+`send_email` returns one of three statuses: `SENT to ...` (Mailtrap accepted the message),
+`REJECTED: ...` (blocked by the guardrail, Mailtrap never contacted), or `FAILED to send to ...`
+(the guardrail passed but the Mailtrap API call itself errored — bad token, unverified sending
+domain, network issue, etc.).
+
+### Picking a recipient
+
+The guardrail decides *whether we may try to send*. It does not — and cannot — tell you whether the
+address can actually **receive** mail. Those are two separate things, and one gotcha follows from it:
+
+**`example.com` accepts no mail at all.** It's IANA-reserved for documentation and publishes a null
+MX record (`0 .`, [RFC 7505](https://www.rfc-editor.org/rfc/rfc7505)), which explicitly declares
+that it takes no email. So a send to `jane@example.com` passes the guardrail, is accepted by Mailtrap
+(you'll see `SENT`), and then **hard-bounces** a moment later — asynchronously, so you only find out
+in the Mailtrap dashboard, not in your terminal.
+
+`SENT` therefore means *"Mailtrap accepted it"*, not *"it was delivered"*.
+
+That matters because hard bounces count against your account's sending reputation, and Mailtrap
+throttles or suspends accounts with a high bounce rate. **Set `OWN_EMAIL` to your own real address
+and send there** — the guardrail exempts it, and nothing bounces.
+
+Keep `ALLOWED_RECIPIENT_DOMAIN=example.com` as the default if you like: it's a deliberately
+undeliverable domain, so it makes a good *blocklist-by-default* for everything except `OWN_EMAIL`.
+Just don't use it as an actual recipient.
 
 ## Setup
 
@@ -57,8 +83,12 @@ and names the offending settings, before any LLM or Mailtrap call is made.
 - `MAILTRAP_SENDER_EMAIL` / `MAILTRAP_SENDER_NAME` — the "from" address/name on sent emails. Mail
   goes out through the production **Sending API**, so `MAILTRAP_SENDER_EMAIL` must be on a domain
   verified in your Mailtrap account's **Sending Domains** settings
-- `ALLOWED_RECIPIENT_DOMAIN` — the guardrail's allowed domain (default `example.com`)
-- `OWN_EMAIL` — your own address, exempted from the domain guardrail
+- `ALLOWED_RECIPIENT_DOMAIN` — the guardrail's allowed domain (default `example.com`). Note this
+  domain is undeliverable by design — don't send to it, see [Picking a
+  recipient](#picking-a-recipient)
+- `OWN_EMAIL` — your own real address. Exempted from the domain guardrail, and the recipient a
+  no-argument run sends to. Set it: without it the only addresses the guardrail admits are
+  `@example.com` ones, which all bounce
 - `LLM_PROVIDER` / `LLM_MODEL` — passed to `init_chat_model` as `"<provider>:<model>"`. Installed
   and ready to use: `google_genai` (default, `gemini-flash-lite-latest` — free tier, no billing
   account needed), `openai` (e.g. `gpt-4o-mini`), or `anthropic` (e.g. `claude-3-5-haiku-latest`).
@@ -72,11 +102,17 @@ and names the offending settings, before any LLM or Mailtrap call is made.
 
 ## Run
 
+Pass your own address as the recipient — it's real mail, and it needs somewhere real to land:
+
 ```bash
-uv run mailtrap-langchain-example "Send a welcome email to jane@example.com"
+uv run mailtrap-langchain-example "Send a welcome email to you@yourdomain.com"
 ```
 
-Or with no argument, it runs the demo prompt above by default.
+Use the address you put in `OWN_EMAIL` (or any address on `ALLOWED_RECIPIENT_DOMAIN`, if you pointed
+that at a domain of your own that actually receives mail).
+
+With no argument, the demo sends to `OWN_EMAIL`. If that isn't set, the run stops and tells you so
+rather than guessing a recipient.
 
 ## Tests
 
@@ -89,13 +125,15 @@ client so no real email is sent during testing, and sets every required setting 
 suite passes without a `.env` file and without real credentials.
 
 Beyond the suite, the agent → tool → `MailtrapClient.send()` flow has been run end-to-end against a
-live Mailtrap account. Sending now defaults to the production Sending API, which delivers real mail
+live Mailtrap account. Sending goes through the production Sending API, which delivers real mail
 only from a verified sending domain — that specific path has not been exercised against a live
-verified domain here.
+verified domain here, and neither has the appearance of the `langchain-example` tag in the category
+stats.
 
 ## Reference material
 
-- [Mailtrap API docs](https://api-docs.mailtrap.io/)
+- [Mailtrap API docs](https://docs.mailtrap.io/developers)
+- [Mailtrap — Email Categories](https://docs.mailtrap.io/email-api-smtp/analytics/categories)
 - [Mailtrap Python SDK](https://github.com/mailtrap/mailtrap-python)
 - [LangChain docs (Python)](https://python.langchain.com)
 - [LangChain — Custom Tools](https://python.langchain.com/docs/how_to/custom_tools/)
