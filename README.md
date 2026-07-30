@@ -16,6 +16,11 @@ single tool; `main.py` is the CLI entry point that takes a prompt like:
 
 The LLM decides to call `send_email`, which sends the email through Mailtrap.
 
+Every message goes out tagged with the category `langchain-example`, so sends from this example are
+grouped together in your Mailtrap category stats. The tag is set twice on purpose: as the Sending
+API's `category` field (what the API acts on) and as an `X-MT-Category` header (the SMTP spelling of
+the same thing), so it survives either transport.
+
 `create_agent` is LangChain 1.x's replacement for the 0.x `AgentExecutor`, which no longer exists
 in `langchain.agents` (it now lives in the deprecated `langchain-classic`). It compiles to a
 LangGraph `CompiledStateGraph` running the same tool-calling loop — so this is the standard

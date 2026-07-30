@@ -49,7 +49,7 @@ def test_sends_to_allowed_recipient(monkeypatch):
     assert FakeMailtrapClient.last_mail.to[0].email == "jane@example.com"
 
 
-def test_sets_category_header_for_mailtrap_stats(monkeypatch):
+def test_tags_every_send_with_the_category_for_mailtrap_stats(monkeypatch):
     monkeypatch.setattr(mailtrap_tool.mt, "MailtrapClient", FakeMailtrapClient)
     FakeMailtrapClient.last_mail = None
 
@@ -57,7 +57,9 @@ def test_sets_category_header_for_mailtrap_stats(monkeypatch):
         {"to": "jane@example.com", "subject": "Welcome", "body": "Hi Jane!"}
     )
 
-    assert FakeMailtrapClient.last_mail.headers == {"X-MT-Category": "langchain-example"}
+    mail = FakeMailtrapClient.last_mail
+    assert mail.category == "langchain-example"
+    assert mail.headers == {"X-MT-Category": "langchain-example"}
 
 
 def test_allows_own_email_override(monkeypatch):

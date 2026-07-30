@@ -5,6 +5,8 @@ from langchain_core.tools import tool
 from mailtrap_langchain_example.config import get_settings
 from mailtrap_langchain_example.guardrail import RecipientNotAllowedError, assert_recipient_allowed
 
+MAILTRAP_CATEGORY = "langchain-example"
+
 
 @tool
 def send_email(to: str, subject: str, body: str) -> str:
@@ -38,7 +40,8 @@ def send_email(to: str, subject: str, body: str) -> str:
         to=[mt.Address(email=to)],
         subject=subject,
         text=body,
-        headers={"X-MT-Category": "langchain-example"},
+        category=MAILTRAP_CATEGORY,
+        headers={"X-MT-Category": MAILTRAP_CATEGORY},
     )
     try:
         response = client.send(mail)
