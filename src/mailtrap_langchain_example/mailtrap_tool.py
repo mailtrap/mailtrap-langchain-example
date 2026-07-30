@@ -32,16 +32,13 @@ def send_email(to: str, subject: str, body: str) -> str:
     except RecipientNotAllowedError as error:
         return f"REJECTED: {error}"
 
-    client = mt.MailtrapClient(
-        token=settings.mailtrap_api_token,
-        sandbox=settings.mailtrap_sandbox,
-        inbox_id=settings.mailtrap_inbox_id if settings.mailtrap_sandbox else None,
-    )
+    client = mt.MailtrapClient(token=settings.mailtrap_api_token)
     mail = mt.Mail(
         sender=mt.Address(email=settings.mailtrap_sender_email, name=settings.mailtrap_sender_name),
         to=[mt.Address(email=to)],
         subject=subject,
         text=body,
+        headers={"X-MT-Category": "langchain-example"},
     )
     try:
         response = client.send(mail)

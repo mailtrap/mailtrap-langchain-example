@@ -33,7 +33,7 @@ See `tests/test_guardrail.py` for the guardrail's behavior.
 
 `send_email` returns one of three statuses: `SENT to ...` (delivered), `REJECTED: ...` (blocked by
 the guardrail, Mailtrap never contacted), or `FAILED to send to ...` (the guardrail passed but the
-Mailtrap API call itself errored — bad token, bad inbox ID, network issue, etc.).
+Mailtrap API call itself errored — bad token, unverified sending domain, network issue, etc.).
 
 ## Setup
 
@@ -44,22 +44,14 @@ uv sync --extra dev
 cp .env.example .env           # Windows: copy .env.example .env
 ```
 
-Fill in `.env`. `MAILTRAP_API_TOKEN`, `MAILTRAP_SENDER_EMAIL`, `MAILTRAP_INBOX_ID`, and
-`LLM_API_KEY` are **required and must be non-empty** — a value that is missing *or* left blank
-stops the run at startup (`config.py`) and names the offending settings, before any LLM or Mailtrap
-call is made.
+Fill in `.env`. `MAILTRAP_API_TOKEN`, `MAILTRAP_SENDER_EMAIL`, and `LLM_API_KEY` are **required and
+must be non-empty** — a value that is missing *or* left blank stops the run at startup (`config.py`)
+and names the offending settings, before any LLM or Mailtrap call is made.
 
 - `MAILTRAP_API_TOKEN` — from your Mailtrap account
-- `MAILTRAP_SENDER_EMAIL` / `MAILTRAP_SENDER_NAME` — the "from" address/name on sent emails
-- `MAILTRAP_SANDBOX` — `true` (default) sends into a Mailtrap Sandbox inbox (safe for testing);
-  `false` sends real mail via the production Sending API (requires `MAILTRAP_SENDER_EMAIL` to be
-  on a domain verified in your Mailtrap account's Sending Domains settings; `MAILTRAP_INBOX_ID` is
-  ignored in this mode, but must still be set to *some* value since it's a required field). The
-  `false` path has not been exercised against a live verified domain — only the config logic that
-  passes `sandbox=` through to the client
-- `MAILTRAP_INBOX_ID` — required. Find it in the Mailtrap dashboard under **Email Testing →
-  Inboxes → (your inbox) → Integration**, or from the inbox's URL
-  (`mailtrap.io/inboxes/<inbox_id>/messages`)
+- `MAILTRAP_SENDER_EMAIL` / `MAILTRAP_SENDER_NAME` — the "from" address/name on sent emails. Mail
+  goes out through the production **Sending API**, so `MAILTRAP_SENDER_EMAIL` must be on a domain
+  verified in your Mailtrap account's **Sending Domains** settings
 - `ALLOWED_RECIPIENT_DOMAIN` — the guardrail's allowed domain (default `example.com`)
 - `OWN_EMAIL` — your own address, exempted from the domain guardrail
 - `LLM_PROVIDER` / `LLM_MODEL` — passed to `init_chat_model` as `"<provider>:<model>"`. Installed
@@ -91,8 +83,10 @@ uv run pytest
 client so no real email is sent during testing, and sets every required setting itself, so the
 suite passes without a `.env` file and without real credentials.
 
-Beyond the suite, the default sandbox path has been run end-to-end against a live Mailtrap account:
-agent → tool → `MailtrapClient.send()` → message received in the dashboard.
+Beyond the suite, the agent → tool → `MailtrapClient.send()` flow has been run end-to-end against a
+live Mailtrap account. Sending now defaults to the production Sending API, which delivers real mail
+only from a verified sending domain — that specific path has not been exercised against a live
+verified domain here.
 
 ## Reference material
 

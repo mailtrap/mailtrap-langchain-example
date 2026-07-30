@@ -8,7 +8,6 @@ def mailtrap_env(monkeypatch):
     """Set every required setting, so the tests pass with no .env on disk."""
     monkeypatch.setenv("MAILTRAP_API_TOKEN", "test-token")
     monkeypatch.setenv("MAILTRAP_SENDER_EMAIL", "sender@yourdomain.com")
-    monkeypatch.setenv("MAILTRAP_INBOX_ID", "1234567")
     monkeypatch.setenv("LLM_API_KEY", "test-key")
     monkeypatch.setenv("ALLOWED_RECIPIENT_DOMAIN", "example.com")
     monkeypatch.setenv("OWN_EMAIL", "test@test.io")
@@ -17,10 +16,8 @@ def mailtrap_env(monkeypatch):
 class FakeMailtrapClient:
     last_mail = None
 
-    def __init__(self, token, sandbox=False, inbox_id=None):
+    def __init__(self, token):
         self.token = token
-        self.sandbox = sandbox
-        self.inbox_id = inbox_id
 
     def send(self, mail):
         FakeMailtrapClient.last_mail = mail
@@ -50,6 +47,17 @@ def test_sends_to_allowed_recipient(monkeypatch):
     assert result.startswith("SENT to jane@example.com")
     assert FakeMailtrapClient.last_mail is not None
     assert FakeMailtrapClient.last_mail.to[0].email == "jane@example.com"
+
+
+def test_sets_category_header_for_mailtrap_stats(monkeypatch):
+    monkeypatch.setattr(mailtrap_tool.mt, "MailtrapClient", FakeMailtrapClient)
+    FakeMailtrapClient.last_mail = None
+
+    mailtrap_tool.send_email.invoke(
+        {"to": "jane@example.com", "subject": "Welcome", "body": "Hi Jane!"}
+    )
+
+    assert FakeMailtrapClient.last_mail.headers == {"X-MT-Category": "langchain-example"}
 
 
 def test_allows_own_email_override(monkeypatch):

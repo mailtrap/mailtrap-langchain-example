@@ -9,8 +9,6 @@ class Settings(BaseSettings):
     mailtrap_api_token: str = Field(min_length=1)
     mailtrap_sender_email: str = Field(min_length=1)
     mailtrap_sender_name: str = "Demo Bot"
-    mailtrap_inbox_id: str = Field(min_length=1)
-    mailtrap_sandbox: bool = True
     allowed_recipient_domain: str = "example.com"
     own_email: str = ""
     llm_provider: str = "google_genai"
